@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -23,18 +24,7 @@ enum RotateDirection { left, right }
 ///you will achieve better quality with a slower preset.
 ///Similarly, for constant quality encoding,
 ///you will simply save bitrate by choosing a slower preset.
-enum VideoExportPreset {
-  none,
-  ultrafast,
-  superfast,
-  veryfast,
-  faster,
-  fast,
-  medium,
-  slow,
-  slower,
-  veryslow
-}
+enum VideoExportPreset { none, ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow }
 
 ///_max = Offset(1.0, 1.0);
 const Offset _max = Offset(1.0, 1.0);
@@ -119,8 +109,7 @@ class VideoEditorController extends ChangeNotifier {
   Duration get videoDuration => _video.value.duration;
 
   ///Get the [Video Dimension] like VideoWidth and VideoHeight
-  Size get videoDimension =>
-      Size(_videoWidth.toDouble(), _videoHeight.toDouble());
+  Size get videoDimension => Size(_videoWidth.toDouble(), _videoHeight.toDouble());
 
   ///The **MinTrim** (Range is `0.0` to `1.0`).
   double get minTrim => _minTrim;
@@ -187,8 +176,7 @@ class VideoEditorController extends ChangeNotifier {
         );
       }
 
-      if ((newMax.dx - cacheMinCrop.dx) * videoWidth > length &&
-          (newMax.dy - cacheMinCrop.dy) * videoHeight > length) {
+      if ((newMax.dx - cacheMinCrop.dx) * videoWidth > length && (newMax.dy - cacheMinCrop.dy) * videoHeight > length) {
         cacheMaxCrop = newMax;
         _preferredCropAspectRatio = value;
         notifyListeners();
@@ -210,8 +198,7 @@ class VideoEditorController extends ChangeNotifier {
 
     // Trim straight away when maxDuration is lower than video duration
     if (_maxDuration < videoDuration)
-      updateTrim(
-          0.0, _maxDuration.inMilliseconds / videoDuration.inMilliseconds);
+      updateTrim(0.0, _maxDuration.inMilliseconds / videoDuration.inMilliseconds);
     else
       _updateTrimRange();
 
@@ -232,8 +219,7 @@ class VideoEditorController extends ChangeNotifier {
 
   void _videoListener() {
     final position = videoPosition;
-    if (position < _trimStart || position >= _trimEnd)
-      _video.seekTo(_trimStart);
+    if (position < _trimStart || position >= _trimEnd) _video.seekTo(_trimStart);
   }
 
   //----------//
@@ -299,8 +285,7 @@ class VideoEditorController extends ChangeNotifier {
   Duration get maxDuration => _maxDuration;
 
   ///Get the **VideoPosition** (Range is `0.0` to `1.0`).
-  double get trimPosition =>
-      videoPosition.inMilliseconds / videoDuration.inMilliseconds;
+  double get trimPosition => videoPosition.inMilliseconds / videoDuration.inMilliseconds;
 
   //-----------//
   //VIDEO COVER//
@@ -312,20 +297,17 @@ class VideoEditorController extends ChangeNotifier {
   ///If condition are good update default cover
   ///Update only milliseconds time for performance reason
   void _checkUpdateDefaultCover() {
-    if (!_isTrimming || _selectedCover.value == null)
-      updateSelectedCover(CoverData(timeMs: startTrim.inMilliseconds));
+    if (!_isTrimming || _selectedCover.value == null) updateSelectedCover(CoverData(timeMs: startTrim.inMilliseconds));
   }
 
   ///Generate cover at startTrim time in milliseconds
   void generateDefaultCoverThumnail() async {
-    final defaultCover =
-        await generateCoverThumbnail(timeMs: startTrim.inMilliseconds);
+    final defaultCover = await generateCoverThumbnail(timeMs: startTrim.inMilliseconds);
     updateSelectedCover(defaultCover);
   }
 
   ///Generate cover data depending on milliseconds
-  Future<CoverData> generateCoverThumbnail(
-      {int timeMs = 0, int quality = 10}) async {
+  Future<CoverData> generateCoverThumbnail({int timeMs = 0, int quality = 10}) async {
     final Uint8List? _thumbData = await VideoThumbnail.thumbnailData(
       imageFormat: ImageFormat.JPEG,
       video: file.path,
@@ -435,23 +417,17 @@ class VideoEditorController extends ChangeNotifier {
     //CALCULATE FILTERS//
     //-----------------//
     final String gif = format != "gif" ? "" : "fps=10 -loop 0";
-    final String trim = minTrim >= _min.dx && maxTrim <= _max.dx
-        ? "-ss $_trimStart -to $_trimEnd"
-        : "";
-    final String crop =
-        minCrop >= _min && maxCrop <= _max ? await _getCrop() : "";
-    final String rotation =
-        _rotation >= 360 || _rotation <= 0 ? "" : _getRotation();
-    final String scaleInstruction =
-        scale == 1.0 ? "" : "scale=iw*$scale:ih*$scale";
+    final String trim = minTrim >= _min.dx && maxTrim <= _max.dx ? "-ss $_trimStart -to $_trimEnd" : "";
+    final String crop = minCrop >= _min && maxCrop <= _max ? await _getCrop() : "";
+    final String rotation = _rotation >= 360 || _rotation <= 0 ? "" : _getRotation();
+    final String scaleInstruction = scale == 1.0 ? "" : "scale=iw*$scale:ih*$scale";
 
     //----------------//
     //VALIDATE FILTERS//
     //----------------//
     final List<String> filters = [crop, scaleInstruction, rotation, gif];
     filters.removeWhere((item) => item.isEmpty);
-    final String filter =
-        filters.isNotEmpty ? "-filter:v " + filters.join(",") : "";
+    final String filter = filters.isNotEmpty ? "-filter:v " + filters.join(",") : "";
     final String execute =
         " -i $videoPath ${customInstruction ?? ""} $filter ${_getPreset(preset)} $trim -y $outputPath";
 
@@ -460,6 +436,59 @@ class VideoEditorController extends ChangeNotifier {
     //------------------//
     if (onProgress != null) _config.enableStatisticsCallback(onProgress);
     final int code = await _ffmpeg.execute(execute);
+    _config.enableStatisticsCallback(null);
+
+    //------//
+    //RESULT//
+    //------//
+    if (code == 0) {
+      print("SUCCESS EXPORT AT $outputPath");
+      return File(outputPath);
+    } else if (code == 255) {
+      print("USER CANCEL EXPORT");
+      return null;
+    } else {
+      print("ERROR ON EXPORT VIDEO (CODE $code)");
+      return null;
+    }
+  }
+
+  Future<File?> exportVideoUpdated({
+    String? name,
+    String format = "mp4",
+    double scale = 1.0,
+    String? customInstruction,
+    void Function(Statistics)? onProgress,
+    VideoExportPreset preset = VideoExportPreset.none,
+  }) async {
+    final FlutterFFmpegConfig _config = FlutterFFmpegConfig();
+    final String tempPath = (await getTemporaryDirectory()).path;
+    final String videoPath = file.path;
+    if (name == null) name = path.basename(videoPath).split('.')[0];
+    final String outputPath = tempPath + name + ".$format";
+
+    //-----------------//
+    //CALCULATE FILTERS//
+    //-----------------//
+    final String gif = format != "gif" ? "" : "fps=10 -loop 0";
+    final String trim = minTrim >= _min.dx && maxTrim <= _max.dx ? "-ss $_trimStart -to $_trimEnd" : "";
+    final String crop = minCrop >= _min && maxCrop <= _max ? await _getCrop() : "";
+    final String rotation = _rotation >= 360 || _rotation <= 0 ? "" : _getRotation();
+    final String scaleInstruction = scale == 1.0 ? "" : "scale=iw*$scale:ih*$scale";
+
+    //----------------//
+    //VALIDATE FILTERS//
+    //----------------//
+    final List<String> filters = [crop, scaleInstruction, rotation, gif];
+    filters.removeWhere((item) => item.isEmpty);
+    final String filter = filters.isNotEmpty ? "-filter:v " + filters.join(",") : "";
+    final String execute = " -i ${customInstruction ?? ""} $filter ${_getPreset(preset)} $trim -y $outputPath";
+
+    //------------------//
+    //PROGRESS CALLBACKS//
+    //------------------//
+    if (onProgress != null) _config.enableStatisticsCallback(onProgress);
+    final int code = await _ffmpeg.executeX(execute, filePath: videoPath);
     _config.enableStatisticsCallback(null);
 
     //------//
@@ -520,8 +549,7 @@ class VideoEditorController extends ChangeNotifier {
   //------------//
 
   String _printDurationFormat() {
-    Duration duration = Duration(
-        milliseconds: selectedCoverVal?.timeMs ?? startTrim.inMilliseconds);
+    Duration duration = Duration(milliseconds: selectedCoverVal?.timeMs ?? startTrim.inMilliseconds);
     String twoDigits(int n) => n.toString().padLeft(2, "0");
     String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
     String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
@@ -544,12 +572,9 @@ class VideoEditorController extends ChangeNotifier {
     //-----------------//
     //CALCULATE FILTERS//
     //-----------------//
-    final String crop =
-        minCrop >= _min && maxCrop <= _max ? await _getCrop() : "";
-    final String rotation =
-        _rotation >= 360 || _rotation <= 0 ? "" : _getRotation();
-    final String scaleInstruction =
-        scale == 1.0 ? "" : "scale=iw*$scale:ih*$scale";
+    final String crop = minCrop >= _min && maxCrop <= _max ? await _getCrop() : "";
+    final String rotation = _rotation >= 360 || _rotation <= 0 ? "" : _getRotation();
+    final String scaleInstruction = scale == 1.0 ? "" : "scale=iw*$scale:ih*$scale";
 
     //----------------//
     //VALIDATE FILTERS//
@@ -557,10 +582,8 @@ class VideoEditorController extends ChangeNotifier {
     final String timeFormat = _printDurationFormat();
     final List<String> filters = [crop, scaleInstruction, rotation];
     filters.removeWhere((item) => item.isEmpty);
-    final String filter =
-        filters.isNotEmpty ? "-filter:v " + filters.join(",") : "";
-    final String execute =
-        " -ss $timeFormat -i ${file.path} -y $filter -frames:v 1 $outputPath";
+    final String filter = filters.isNotEmpty ? "-filter:v " + filters.join(",") : "";
+    final String execute = " -ss $timeFormat -i ${file.path} -y $filter -frames:v 1 $outputPath";
 
     //------------------//
     //PROGRESS CALLBACKS//
@@ -582,5 +605,27 @@ class VideoEditorController extends ChangeNotifier {
       print("ERROR ON COVER EXTRACTION (CODE $code)");
       return null;
     }
+  }
+}
+
+extension FlutterFFmpegX on FlutterFFmpeg {
+  static const MethodChannel _methodChannel = const MethodChannel('flutter_ffmpeg');
+
+  Future<int> executeWithArgumentsX(List<dynamic> arguments, {String? filePath}) async {
+    if (filePath != null) {
+      arguments.insert(1, filePath);
+    }
+    try {
+      final Map<dynamic, dynamic> result =
+          await _methodChannel.invokeMethod('executeFFmpegWithArguments', {'arguments': arguments});
+      return result['rc'];
+    } on PlatformException catch (e, stack) {
+      print("Plugin executeWithArguments error: ${e.message}");
+      return Future.error("executeWithArguments failed.", stack);
+    }
+  }
+
+  Future<int> executeX(String command, {String? filePath}) async {
+    return executeWithArgumentsX(FlutterFFmpeg.parseArguments(command)!, filePath: filePath);
   }
 }
