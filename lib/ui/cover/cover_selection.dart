@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:video_editor/domain/bloc/controller.dart';
 import 'package:video_editor/domain/entities/cover_data.dart';
 import 'package:video_editor/domain/entities/transform_data.dart';
 import 'package:video_editor/ui/crop/crop_grid_painter.dart';
 import 'package:video_editor/ui/transform.dart';
-import 'package:video_editor/domain/bloc/controller.dart';
 
 class CoverSelection extends StatefulWidget {
   ///Slider that trim video length.
-  CoverSelection(
-      {Key? key,
-      required this.controller,
-      this.height = 60,
-      this.quality = 10,
-      this.nbSelection = 5})
+  CoverSelection({Key? key, required this.controller, this.height = 60, this.quality = 10, this.nbSelection = 5})
       : super(key: key);
 
   ///**Quality of thumbnails:** 0 is the worst quality and 100 is the highest quality.
@@ -31,8 +26,7 @@ class CoverSelection extends StatefulWidget {
   _CoverSelectionState createState() => _CoverSelectionState();
 }
 
-class _CoverSelectionState extends State<CoverSelection>
-    with AutomaticKeepAliveClientMixin {
+class _CoverSelectionState extends State<CoverSelection> with AutomaticKeepAliveClientMixin {
   ValueNotifier<Rect> _rect = ValueNotifier<Rect>(Rect.zero);
   ValueNotifier<TransformData> _transform = ValueNotifier<TransformData>(
     TransformData(rotation: 0.0, scale: 1.0, translate: Offset.zero),
@@ -54,7 +48,7 @@ class _CoverSelectionState extends State<CoverSelection>
     widget.controller.addListener(_scaleRect);
 
     // init the widget with controller values
-    WidgetsBinding.instance!.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       _scaleRect();
     });
   }
@@ -80,8 +74,7 @@ class _CoverSelectionState extends State<CoverSelection>
 
     // if trim values changed generate new thumbnails
     if (!widget.controller.isTrimming &&
-        (_startTrim != widget.controller.startTrim ||
-            _endTrim != widget.controller.endTrim)) {
+        (_startTrim != widget.controller.startTrim || _endTrim != widget.controller.endTrim)) {
       _startTrim = widget.controller.startTrim;
       _endTrim = widget.controller.endTrim;
       setState(() {
@@ -92,8 +85,7 @@ class _CoverSelectionState extends State<CoverSelection>
 
   Stream<List<CoverData>> _generateThumbnails() async* {
     final int duration = widget.controller.isTrimmmed
-        ? (widget.controller.endTrim - widget.controller.startTrim)
-            .inMilliseconds
+        ? (widget.controller.endTrim - widget.controller.startTrim).inMilliseconds
         : widget.controller.videoDuration.inMilliseconds;
     final double eachPart = duration / widget.nbSelection;
     List<CoverData> _byteList = [];
@@ -155,28 +147,17 @@ class _CoverSelectionState extends State<CoverSelection>
                             valueListenable: _transform,
                             builder: (_, TransformData transform, __) {
                               return ValueListenableBuilder(
-                                  valueListenable:
-                                      widget.controller.selectedCoverNotifier,
-                                  builder:
-                                      (context, CoverData? selectedCover, __) {
+                                  valueListenable: widget.controller.selectedCoverNotifier,
+                                  builder: (context, CoverData? selectedCover, __) {
                                     return InkWell(
-                                        onTap: () => widget.controller
-                                            .updateSelectedCover(coverData),
+                                        onTap: () => widget.controller.updateSelectedCover(coverData),
                                         child: Container(
                                             decoration: BoxDecoration(
                                                 border: Border.all(
-                                                    color: coverData.sameTime(
-                                                            widget.controller
-                                                                .selectedCoverVal!)
-                                                        ? widget
-                                                            .controller
-                                                            .coverStyle
-                                                            .selectedBorderColor
+                                                    color: coverData.sameTime(widget.controller.selectedCoverVal!)
+                                                        ? widget.controller.coverStyle.selectedBorderColor
                                                         : Colors.transparent,
-                                                    width: widget
-                                                        .controller
-                                                        .coverStyle
-                                                        .selectedBorderWidth)),
+                                                    width: widget.controller.coverStyle.selectedBorderWidth)),
                                             child: CropTransform(
                                               transform: transform,
                                               child: Container(
@@ -185,20 +166,17 @@ class _CoverSelectionState extends State<CoverSelection>
                                                 width: _layout.width,
                                                 child: Stack(children: [
                                                   Image(
-                                                    image: MemoryImage(
-                                                        coverData.thumbData!),
+                                                    image: MemoryImage(coverData.thumbData!),
                                                     width: _layout.width,
                                                     height: _layout.height,
-                                                    alignment:
-                                                        Alignment.topLeft,
+                                                    alignment: Alignment.topLeft,
                                                   ),
                                                   CustomPaint(
                                                     size: _layout,
                                                     painter: CropGridPainter(
                                                       _rect.value,
                                                       showGrid: false,
-                                                      style: widget
-                                                          .controller.cropStyle,
+                                                      style: widget.controller.cropStyle,
                                                     ),
                                                   )
                                                 ]),

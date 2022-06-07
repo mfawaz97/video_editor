@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:video_editor/domain/bloc/controller.dart';
 import 'package:video_editor/domain/entities/transform_data.dart';
 import 'package:video_editor/ui/crop/crop_grid_painter.dart';
-import 'package:video_editor/domain/bloc/controller.dart';
-import 'package:video_editor/ui/video_viewer.dart';
 import 'package:video_editor/ui/transform.dart';
+import 'package:video_editor/ui/video_viewer.dart';
 
 enum _CropBoundaries {
   topLeft,
@@ -61,12 +61,12 @@ class _CropGridViewerState extends State<CropGridViewer> {
       _controller.cacheMinCrop = _controller.minCrop;
 
       // init the crop area with preferredCropAspectRatio
-      WidgetsBinding.instance!.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         _updateRect();
       });
     } else {
       // init the widget with controller values if it is not the croping screen
-      WidgetsBinding.instance!.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         _scaleRect();
       });
     }
@@ -84,8 +84,7 @@ class _CropGridViewerState extends State<CropGridViewer> {
 
   void _updateRect() {
     _transform.value = TransformData.fromController(_controller);
-    if (_preferredCropAspectRatio == null ||
-        _controller.preferredCropAspectRatio != _preferredCropAspectRatio) {
+    if (_preferredCropAspectRatio == null || _controller.preferredCropAspectRatio != _preferredCropAspectRatio) {
       setState(() {
         _preferredCropAspectRatio = _controller.preferredCropAspectRatio;
         _rect.value = _calculateCropRect(
@@ -142,8 +141,7 @@ class _CropGridViewerState extends State<CropGridViewer> {
         //CENTERS
         if (pos >= topLeft.topRight && pos <= topRight.bottomLeft) {
           _boundary = _CropBoundaries.topCenter;
-        } else if (pos >= bottomLeft.topRight &&
-            pos <= bottomRight.bottomLeft) {
+        } else if (pos >= bottomLeft.topRight && pos <= bottomRight.bottomLeft) {
           _boundary = _CropBoundaries.bottomCenter;
         } else if (pos >= topLeft.bottomLeft && pos <= bottomLeft.topRight) {
           _boundary = _CropBoundaries.centerLeft;
@@ -181,25 +179,18 @@ class _CropGridViewerState extends State<CropGridViewer> {
           final Offset pos = _rect.value.topLeft + delta;
           _changeRect(
             top: _preferredCropAspectRatio == null ? pos.dy : pos.dy,
-            left: _preferredCropAspectRatio == null
-                ? pos.dx
-                : pos.dx / _preferredCropAspectRatio!,
+            left: _preferredCropAspectRatio == null ? pos.dx : pos.dx / _preferredCropAspectRatio!,
             width: _rect.value.width - delta.dx,
-            height: _preferredCropAspectRatio == null
-                ? _rect.value.height - delta.dy
-                : null,
+            height: _preferredCropAspectRatio == null ? _rect.value.height - delta.dy : null,
           );
           break;
         case _CropBoundaries.topRight:
           _changeRect(
             top: _preferredCropAspectRatio == null
                 ? _rect.value.topRight.dy + delta.dy
-                : (_rect.value.topRight.dy +
-                    (delta.dy * _preferredCropAspectRatio!)),
+                : (_rect.value.topRight.dy + (delta.dy * _preferredCropAspectRatio!)),
             width: _rect.value.width + delta.dx,
-            height: _preferredCropAspectRatio == null
-                ? _rect.value.height - delta.dy
-                : null,
+            height: _preferredCropAspectRatio == null ? _rect.value.height - delta.dy : null,
           );
           break;
         case _CropBoundaries.bottomRight:
